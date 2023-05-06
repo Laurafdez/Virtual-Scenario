@@ -5,9 +5,9 @@ RDSV/SDNV - MUIRST - MUIT
 
 Miguel Ángel Cuesta Bravo, Laura Fernández Galindo & José Javier Mata de la Fuente
 
-# Trabajo Final
+# Final Work
 
-## Situación inicial del proyecto <a name="crearvmlocal"></a>
+## Initial status of the project<a name="crearvmlocal"></a>
 
 In this section, an overview of the project is provided, both in terms of content and development. Firstly, the studied network service is the residential Internet access service, where the residential router is replaced by a "Bridged Residential Gateway (BRG)" that performs level 2 switching of user traffic between the residential network and the local central office. The rest of the functions are performed in the local central office using network virtualization techniques (NFV), creating a virtual CPE service (vCPE) managed through the orchestration platform.
 
