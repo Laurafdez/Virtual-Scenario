@@ -9,206 +9,208 @@ Miguel Ángel Cuesta Bravo, Laura Fernández Galindo & José Javier Mata de la F
 
 ## Situación inicial del proyecto <a name="crearvmlocal"></a>
 
-En esta sección se trata de dar una vista general del proyecto, tanto en contenido como en desarrollo. En primer lugar, el servicio de red bajo estudio es el servicio residencial de acceso a Internet, donde el router residencial se sustituye por un “Bridged Residential Gateway (BRG)” que realiza la conmutación de nivel 2 del tráfico de los usuarios entre la red residencial y la central local. El resto de las funciones se realizan en la central local aplicando técnicas de virtualización de red (NFV), creando un servicio de CPE virtual (vCPE) gestionado mediante la plataforma de orquestación.
-Para su implementación se ha utilizado la imagen virtual RDSV2022-v1.ova, la cual virtualiza RDSV-K8S, que nos permite utilizar el paquete microk8s, la herramienta VNX, Open vSwitch (ovs); y RDSV-OSM, que instala el entorno OSM, al que se accede gráficamente. En esta primera imagen se mustra el escenario inicialde la práctica sin ningún cambio:
+In this section, an overview of the project is provided, both in terms of content and development. Firstly, the studied network service is the residential Internet access service, where the residential router is replaced by a "Bridged Residential Gateway (BRG)" that performs level 2 switching of user traffic between the residential network and the local central office. The rest of the functions are performed in the local central office using network virtualization techniques (NFV), creating a virtual CPE service (vCPE) managed through the orchestration platform.
+
+For its implementation, the virtual image RDSV2022-v1.ova has been used, which virtualizes RDSV-K8S, allowing the use of the microk8s package, the VNX tool, Open vSwitch (ovs); and RDSV-OSM, which installs the OSM environment, which can be accessed graphically. The first image shows the initial scenario of the practice without any changes:
 
 
 <img src="Diagrama1.png" />
 
-El escenario que se busca desplegar esta formado por dos redes residenciales como las que se muestran en la imagen. Estas presentan una conectividad IPv4 desde cada una de las redes residenciales hacia Internet. Usan doble NAT: en KNF:cpe y en isp1. Como se puede observar, se ha sustituido el switch KNF:access por uno controlado por OpenFlow y se gestionará la calidad de servicio en la red de acceso mediante la API REST de RYU. Además, en el switch de KNF: cpe se ha activado la captura de tráfico ARP mediante arpwatch.
+The scenario to be deployed consists of two residential networks as shown in the image. These have IPv4 connectivity from each of the residential networks to the Internet. They use double NAT: on KNF:cpe and on isp1. As can be seen, the KNF:access switch has been replaced by one controlled by OpenFlow and QoS will be managed on the access network using the RYU REST API. In addition, on the KNF:cpe switch, ARP traffic capture has been enabled using arpwatch.
+
+
 <img src="Diagrama.png"/>
 
-### Instalar los escenarios 
-Primero se debe instalar en dos ordenadores distintos con cuentas diferentes instalar los escenarios.
+### Setting up the stages 
+The scenarios must first be installed on two different computers with different accounts.
 
-En pc-k8s se ejecuta:
+On pc-k8s it runs:
 ```console
 /lab/rdsv/get-osmlab2 RDSV-K8S l060
 ```
 
-En pc-osm se ejecuta.
+In pc-osm it is executed.
 ```console
 /lab/rdsv/get-osmlab2 RDSV-OSM l059
 ```
-<sub> En ambos casos lxx será el identificador de cada ordenador.</sub>
-<sub> Se ejecutarán la mayoría de instrucciones en RDSV-OSM menos cuando se especifíca en los host de RDSV-K8 o se especifique la maquina RDSV-K8</sub>
-### Despliegue del nuevo escenario 
-Para comenzar a desplegar los escenarios se debe clonar el repositorio en ambas máquinas:
+<sub> In both cases lxx will be the identifier of each computer.</sub>
+<sub> Most instructions will be executed in RDSV-OSM except when specified in the RDSV-K8 hosts or the RDSV-K8 machine is specified.</sub>
+### Deployment of the new scenario  
+To start deploying the scenarios, the repository must be cloned on both machines:
 ```console
 git clone https://github.com/prdsv/practica.git
 ```
-Se debe mover a la carpeta del repositorio:
+It must be moved to the repository folder:
 ```console
 cd practica
 ```
-Se da permisos a permisos.sh y se ejecuta consiguiendo que todos los script descargados tengan los permisos necesarios.
+permissions.sh is given permissions and executed, making all downloaded scripts have the necessary permissions.
 ```console
 chmod 777 permisos.sh
 ```
 ```console
 ./permisos.sh
 ```
-En RDSV-K8S se procede a deplegar el escenario para ello:
+In RDSV-K8S, the scenario for this is deployed:
 ```console
 . ./deployk8.sh
 ```
-En RDSV-OSM se podrá desplegar el escenario completo realizando:
+In RDSV-OSM the complete scenario can be deployed by performing:
 ```console
 cd rdsv-final
 
 . ./deploy.sh
 ```
 
-Para dar conectividad a la red residencial 1 y poder acceder a sus Ips se realiza.
+To provide connectivity to the residential network 1 and to be able to access its Ips is carried out.
 
 ```console
 . ./osm_renes1.sh
 ```
-Para mostrar las ips de los host se realiza:
+To display the ips of the hosts, the following is done:
 ```console
 ifconfig eth1
 ```
-Si fallará el comando se hace:
+If it will fail the command is done:
 ```console
 sudo dhclient eth1
 ifconfig
 ```
 
 
-Para comprobar que existe conexión a Internet se realiza:
+To check that there is an Internet connection, the following is done:
 ```console
 ping 8.8.8.8
 ```
-<sub> Se realiza el mismo proceso para la red residencial segunda pero ejecutando . ./osm_renes2.sh</sub>
-# Ryu: controlar la calidad de servicio
-## Configuración de la primera red residencial:
-Para que la primera red residencial cumpla las condiciones de QoS que son: un límite de 12Mbps de bajada y 6Mbps de subida. Y para los host en el caso de h11 8Mbps de bajada y 4Mbps mínimos de subida y de h12 4Mbps máximos de bajada y 2Mbps máximos de subida, se ejecuta para configurar las condicones de bajada:
+<sub> The same process is carried out for the second residential network but running. ./osm_renes2.sh</sub>
+# Ryu: controlling the quality of service
+## Setting up the first residential network::
+For the first residential network to meet the QoS conditions which are: a limit of 12Mbps downstream and 6Mbps upstream. And for the hosts in the case of h11 8Mbps downstream and 4Mbps minimum upstream and h12 4Mbps maximum downstream and 2Mbps maximum upstream, it is executed to configure the downstream conditions:
 
 ```console
 . ./renes1qosdown.sh
 ```
-Y para las condiciones de subida:
+And for the conditions of ascent:
 ```console
 . ./renes1qosup.sh
 ```
-Para probar que se ha hecho bien la configuración de bajada en los hosts se ejecuta:
+To test that the downstream configuration on the hosts has been done properly, it is executed:
 ```console
 iperf3 -s -i 1 -p 5002
 ```
-Para mandar tráfico primero se accede a KNF:cpe y se realiza:
+To send traffic you first access KNF:cpe and do so:
 ```console
 kubectl -n $OSMNS exec -it $CPEPOD -- /bin/bash
 iperf3 -c 192.168.255.2x -p 5002 -u -b 20M 1200
 ```
-
-Para probar que se ha hecho bien la configuración de subida primero se accede a KNF:cpe y se realiza:
+To test that the upload configuration has been done correctly, first access KNF:cpe and perform it:
 ```console
 kubectl -n $OSMNS exec -it $CPEPOD -- /bin/bash
 iperf3 -s -i 1 -p 5002
 ```
-En los hosts se realiza:
+In the hosts it is done:
 ```console
 iperf3 -c 192.168.255.1 -p 5002 -u -b 20M 1200
 ```
-## Configuración de la segunda red residencial:
-Para dar conectividad a la red residencial 2 y poder acceder a sus Ips se realiza:
+## Configuration of the second residential network:
+In order to provide connectivity to the residential network 2 and to be able to access its Ips, this is done:
 ```console
 . ./osm_renes2.sh
 ```
-Para mostrar las ips de los host se realiza:
+To display the ips of the hosts, the following is done:
 ```console
 ifconfig eth1
 ```
-Si fallará el comando se hace:
+If it will fail the command is made:
 ```console
 sudo dhclient eth1
 ifconfig
 ```
-Para comprobar que existe conexión a Internet se realiza:
+To check that there is an Internet connection, the following is done:
 ```console
 ping 8.8.8.8
 ```
-Por otro lado, para que la segunda red residencial cumpla las condiciones de QoS que son: un límite de 12Mbps de bajada y 6Mbps de subida. Y para los host en el caso de h11 8Mbps de bajada y 4Mbps mínimos de subida y de h12 4Mbps máximos de bajada y 2Mbps máximos de subida, se ejecuta para configurar las condicones de bajada:
+On the other hand, for the second residential network to meet the QoS conditions which are: a limit of 12Mbps downstream and 6Mbps upstream. And for the hosts in the case of h11 8Mbps downstream and 4Mbps minimum upstream and h12 4Mbps maximum downstream and 2Mbps maximum upstream, it is executed to configure the downstream conditions:
 
 ```console
 . ./renes2qosdown.sh
 ```
-Y para las condiciones de subida:
+And for the conditions of ascent:
 ```console
 . ./renes2qosup.sh
 ```
-En la máquina RDSV-K8S se instala iperf en todos los host mediante:
+On the RDSV-K8S machine, iperf is installed on all hosts via:
 ```console
 chmod 777 iperf.sh
 
 . ./iperf.sh
 ```
-Para probar que se ha hecho bien la configuración de bajada en los host se ejecuta:
+To test that the downstream configuration on the hosts has been done properly, it is executed:
 ```console
 iperf3 -s -i 1 -p 5002
 ```
-Para mandar tráfico primero se accede a KNF:cpe y se realiza:
+To send traffic you first access KNF:cpe and do so:
 ```console
 kubectl -n $OSMNS exec -it $CPEPOD2 -- /bin/bash
 
 iperf3 -c 192.168.255.2x -p 5002 -u -b 20M 1200
 ```
-Para probar que se ha hecho bien la configuración de subida primero se accede a KNF:cpe y se realiza:
+To test that the upload configuration has been done correctly, first access KNF:cpe and perform it:
 ```console
 kubectl -n $OSMNS exec -it $CPEPOD2 -- /bin/bash
 
 iperf3 -s -i 1 -p 5002
 ```
-En los hosts se realiza:
+In the hosts it is done:
 ```console
 iperf3 -c 192.168.255.1 -p 5002 -u -b 20M 1200
 ```
-## Captura de tráfico ARP mediante “arpwatch”
+## Capture ARP traffic using "arpwatch".
 
-### Captura de tráfico ARP mediante “arpwatch” en la primera red residencial
-Para poder realizar la captura de tráfico ARP mediante arpwatch en la red residencial 1 se debe acceder a KNF:cpe y realizar pings:
+### Capturing ARP traffic using "arpwatch" on the first residential network
+In order to capture ARP traffic using arpwatch on residential network 1, access KNF:cpe and perform pings:
 
 ```console
 kubectl -n $OSMNS exec -it $CPEPOD -- /bin/bash 
 ```
-Y se realiza la captura de tráfico:
+And traffic capture is performed:
 ```console
 . ./arpwatch.sh
 ```
-Y se hacen los pings para rellenar las tablas, por un lado dentro de KNF:cpe para registrar el tráfico de net1:
+And pings are made to populate the tables, on the one hand within KNF:cpe to log net1 traffic:
 
 ```console
 ping -c5 10.100.1.254
 ```
-Y en h11 o en h12:
+And in h11 or h12:
 
 ```console
 ping -c5 192.168.255.2x
 
-#Otra una Ip que no este dentro de la red residencial
+#Other an Ip that is not in the residential network
 
 ping -c5 192.168.255.30
 ```
-Se para el proceso de captura de tráfico:
+The traffic capture process stops:
 ```console
 /etc/init.d/arpwatch stop
 ```
-Y se observa el tráfico capturado en las interfaces net1 y en brint:
+And you can see the traffic captured on the net1 and brint interfaces:
 ```console
 cat net1.dat
 cat brint.dat
 ```
-### Captura de tráfico ARP mediante “arpwatch” en la segunda red residencial
-Para poder realizar la captura de tráfico ARP mediante arpwatch en la red residencial 2 se debe acceder a KNF:cpe y realizar pings:
+### Capturing ARP traffic using "arpwatch" on the second home network
+In order to be able to capture ARP traffic using arpwatch on residential network 2, access KNF:cpe and perform pings:
 
 ```console
 kubectl -n $OSMNS exec -it $CPEPOD2 -- /bin/bash 
 ```
-Y se realiza la captura de tráfico:
+And traffic capture is performed:
 ```console
 . ./arpwatch.sh
 ```
-Y se hacen los pings para rellenar las tablas, por un lado dentro de KNF:cpe para registrar el tráfico de net1:
+And pings are made to populate the tables, on the one hand within KNF:cpe to log net1 traffic:
 
 ```console
 ping -c5 10.100.1.254
@@ -218,42 +220,16 @@ Y en h21 o en h22:
 ```console
 ping -c5 192.168.255.2x
 
-#Otra una Ip que no este dentro de la red residencial
+#Other an Ip that is not in the residential network
 
 ping -c5 192.168.255.30
 ```
-Se para el proceso de captura de tráfico:
+The traffic capture process is stopped:
 ```console
 /etc/init.d/arpwatch stop
 ```
-Y se observa el tráfico capturado en las interfaces net1 y en brint:
+And you can see the traffic captured on the net1 and brint interfaces:
 ```console
 cat net1.dat
 cat brint.dat
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# Virtual-Scenario
-# Virtual-Scenario
